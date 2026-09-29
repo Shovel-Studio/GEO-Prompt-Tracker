@@ -62,6 +62,21 @@ def _friendly_error(err: Exception) -> str:
     return "an unexpected problem occurred"
 
 
+def _save_failure_screenshot(browser: "_Browser", platform: str, pnum: int, run: int) -> str:
+    """Capture what the page showed when a run failed, for diagnosis. Saved in
+    the local data dir (never the repo). Returns the path, or "" if impossible."""
+    if browser._ctx is None or not browser._ctx.pages:
+        return ""
+    try:
+        folder = config.DATA_DIR / "failures"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{time.strftime('%Y-%m-%d_%H%M%S')}_{platform}_p{pnum}_r{run}.png"
+        browser._ctx.pages[0].screenshot(path=str(path), timeout=10_000)
+        return str(path)
+    except Exception:
+        return ""
+
+
 def _describe(recs: list[dict]) -> str:
     if not recs:
         return "no recommendations found"
@@ -144,6 +159,9 @@ def _run_platform(tracker: Tracker, platform: str, prompts, headless: bool, runs
                 except Exception as err:  # never let one run kill the batch
                     tracker.note_error(pnum, platform, run, f"ERROR: {err}")
                     print(f"⚠  {where} — {_friendly_error(err)}; will retry on resume")
+                    shot = _save_failure_screenshot(browser, platform, pnum, run)
+                    detail = str(err).strip().splitlines()[0][:200] if str(err).strip() else type(err).__name__
+                    print(f"   details: {detail}" + (f"\n   screenshot: {shot}" if shot else ""))
                     consecutive_failures += 1
                     if _looks_dead(err) or consecutive_failures >= _RELAUNCH_AFTER:
                         tracker.save()
