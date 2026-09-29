@@ -14,11 +14,15 @@ def wait_for_stable_text(
     timeout_s: float,
     stable_for_s: float = 3.0,
     poll_s: float = 1.0,
+    min_chars: int = 0,
 ) -> str:
     """Poll a container's text until it stops growing for `stable_for_s`.
 
     Provider-agnostic completion detector: streaming answers grow, then hold
-    steady once generation finishes. Returns the final text (may be empty).
+    steady once generation finishes. Text shorter than `min_chars` never counts
+    as finished, so a status line ("Researching…") that sits still during a
+    slow search isn't mistaken for the answer. Returns the final text (may be
+    empty or short if the timeout is hit).
     """
     deadline = time.time() + timeout_s
     last = ""
@@ -31,7 +35,7 @@ def wait_for_stable_text(
         if current != last:
             last = current
             last_change = time.time()
-        elif current and (time.time() - last_change) >= stable_for_s:
+        elif len(current) > max(min_chars, 0) and (time.time() - last_change) >= stable_for_s:
             return current
         time.sleep(poll_s)
     return last

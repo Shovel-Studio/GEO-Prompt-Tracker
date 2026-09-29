@@ -30,6 +30,8 @@ _RELAUNCH_AFTER = 3
 _COOLDOWN_AFTER_RESTARTS = 2
 _GIVE_UP_AFTER_RESTARTS = 4
 _COOLDOWN_S = 600
+# Anything shorter than this is a status line or fragment, not a real answer.
+_MIN_ANSWER_CHARS = 60
 _DEAD_BROWSER_HINTS = (
     "target page, context or browser has been closed",
     "browser has been closed", "connection closed", "target closed",
@@ -135,9 +137,14 @@ def _run_platform(tracker: Tracker, platform: str, prompts, headless: bool, runs
                     page = browser.page()
                     engine.new_chat(page)
                     result = engine.ask(page, ptext)
-                    if not result.response_text.strip():
-                        # Don't record a blank row as done — raise so it retries.
+                    # Don't record a blank or stub answer (e.g. a leftover
+                    # "Researching…" status line) as done — raise so it retries.
+                    answer_len = len(result.response_text.strip())
+                    if not answer_len:
                         raise RuntimeError("empty response")
+                    if answer_len < _MIN_ANSWER_CHARS:
+                        raise RuntimeError(f"invalid response: only {answer_len} characters "
+                                           f"({result.response_text.strip()[:60]!r})")
                     sources = normalize_sources(result.sources)
                     result.sources = sources
                     # An analysis failure (bad key, API down) must not look like a
