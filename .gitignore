@@ -1,0 +1,19 @@
+# Secrets and personal data — never commit
+.env
+.browser-profile/
+prompts.txt
+prompts.*.txt
+!prompts.example.txt
+output/
+
+# Licensed font files (not redistributable); the UI falls back to system fonts
+geo/web/assets/fonts/
+
+# Local environments and tooling
+.venv/
+venv/
+.claude/
+oneglanse/
+__pycache__/
+*.pyc
+.DS_Store

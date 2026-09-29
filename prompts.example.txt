@@ -1,0 +1,5 @@
+# One prompt per line. Blank lines and lines starting with # are ignored.
+# Copy this file to prompts.txt (which stays out of git) and edit it there,
+# or edit prompts in the web UI.
+What are the best blue jeans?
+Best running shoes for flat feet

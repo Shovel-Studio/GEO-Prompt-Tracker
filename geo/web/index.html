@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEO Prompt Tracker</title>
+<style>
+  @font-face { font-family:'Denim INK'; font-weight:400; font-display:swap;
+    src:url('/assets/fonts/DenimINK-Regular.woff2') format('woff2'),
+        url('/assets/fonts/DenimINK-Regular.woff') format('woff'); }
+  @font-face { font-family:'Denim INK'; font-weight:600; font-display:swap;
+    src:url('/assets/fonts/DenimINK-SemiBold.woff2') format('woff2'),
+        url('/assets/fonts/DenimINK-SemiBold.woff') format('woff'); }
+
+  :root {
+    --brand: #12059c; --brand-hover: #10058c; --brand-active: #0e0475;
+    --accent: #fbea38; --green: #b4e537;
+    --canvas: #ffffff; --subtle: #f0f0f0; --muted: #d8d8d8; --inverse: #4c4646;
+    --text: #151514; --text-2: #5b5b5b;
+    --border: rgba(21,21,20,0.12); --border-strong: #151514;
+    --sans: 'Denim INK', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: var(--sans); font-size: 14px; line-height: 1.3; margin: 0;
+    background: var(--subtle); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+  header { background: var(--canvas); border-bottom: 1px solid var(--border-strong);
+    padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header .wordmark { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+  header .divider { width: 1px; height: 20px; background: var(--border); }
+  header .product { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-2); font-weight: 600; }
+  header .pills { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .pill { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+    padding: 5px 10px; border: 1px solid var(--border); color: var(--text-2);
+    display: inline-flex; align-items: center; gap: 7px; background: var(--canvas); }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+  .pill.ok { color: var(--text); border-color: var(--border-strong); }
+  .pill.ok::before { background: var(--green); }
+  .pill.warn { color: var(--text); }
+  .pill.warn::before { background: var(--accent); }
+
+  .wrap { max-width: 940px; margin: 0 auto; padding: 24px 24px 80px; }
+  .card { background: var(--canvas); border: 1px solid var(--border); padding: 22px; margin-bottom: 16px; }
+  .card h2 { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600;
+    color: var(--text-2); margin: 0 0 4px; }
+  .card .lead { font-size: 20px; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.01em; }
+  .muted { color: var(--text-2); font-size: 13px; }
+  code { font-family: var(--mono); font-size: 12px; background: var(--subtle); padding: 1px 5px; }
+  a { color: var(--brand); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  textarea { width: 100%; min-height: 260px; background: var(--canvas); color: var(--text);
+    border: 1px solid var(--border); padding: 14px; font-family: var(--mono); font-size: 13px;
+    line-height: 1.5; resize: vertical; border-radius: 0; }
+  textarea:focus { outline: none; border-color: var(--border-strong); }
+  input[type=number] { width: 60px; background: var(--canvas); color: var(--text);
+    border: 1px solid var(--border); padding: 7px; font-family: var(--sans); border-radius: 0; }
+  input[type=number]:focus { outline: none; border-color: var(--border-strong); }
+
+  button { font-family: var(--sans); font-size: 15px; padding: 10px 24px; border: 1px solid transparent;
+    background: none; color: var(--text); cursor: pointer; border-radius: 0; transition: background 200ms; }
+  button.primary { background: var(--brand); color: #fff; }
+  button.primary:hover { background: var(--brand-hover); }
+  button.primary:active { background: var(--brand-active); }
+  button.outlined { border: 1px dashed var(--border-strong); color: var(--text); }
+  button.outlined:hover { background: var(--subtle); }
+  button.accent { background: var(--accent); color: var(--text); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row + .row { margin-top: 12px; }
+  label.chk { display: inline-flex; gap: 7px; align-items: center; padding: 8px 12px;
+    border: 1px solid var(--border); cursor: pointer; font-size: 13px; }
+  label.chk:hover { border-color: var(--border-strong); }
+  .eyebrow { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-2);
+    font-weight: 600; }
+
+  .bar { height: 8px; background: var(--subtle); border: 1px solid var(--border); overflow: hidden; margin: 14px 0 8px; }
+  .bar > div { height: 100%; width: 0; background: var(--brand); transition: width .4s; }
+
+  pre#log { background: var(--text); color: #f0f0f0; border: 1px solid var(--border-strong);
+    padding: 14px; height: 300px; overflow: auto; font-family: var(--mono); font-size: 12px;
+    line-height: 1.5; white-space: pre-wrap; margin: 0; }
+  details.run { border: 1px solid var(--border); margin-top: 10px; background: var(--canvas); }
+  details.run[open] { border-color: var(--border-strong); }
+  details.run > summary { list-style: none; cursor: pointer; padding: 14px 16px;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  details.run > summary::-webkit-details-marker { display: none; }
+  details.run > summary::before { content: "▸"; color: var(--text-2); transition: transform 150ms; }
+  details.run[open] > summary::before { transform: rotate(90deg); }
+  details.run > summary:hover { background: var(--subtle); }
+  .run-title { font-weight: 600; font-size: 15px; flex: 1; min-width: 200px; }
+  .run-meta { font-size: 12px; color: var(--text-2); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .run-body { padding: 4px 16px 18px; border-top: 1px solid var(--border); }
+  .tag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+    padding: 3px 7px; border: 1px solid var(--border); }
+  .tag.live { background: var(--accent); border-color: var(--accent); color: var(--text); }
+
+  .prompt-title { font-size: 16px; font-weight: 600; margin: 18px 0 8px; }
+  .prompt-title:first-child { margin-top: 0; }
+  table.lb { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.lb th { text-align: left; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-2); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border-strong); }
+  table.lb td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.lb td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.lb th.num { text-align: right; }
+  table.lb td.brand { font-weight: 600; }
+  table.lb td.items { color: var(--text-2); font-size: 12px; }
+  .share { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+  .share .track { flex: 1; height: 6px; background: var(--subtle); }
+  .share .track > div { height: 100%; background: var(--brand); }
+  .table-scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<header>
+  <span class="wordmark">GEO</span>
+  <span class="divider"></span>
+  <span class="product">Prompt Tracker</span>
+  <div class="pills">
+    <span id="s-provider" class="pill">…</span>
+    <span id="s-key" class="pill">…</span>
+    <span id="s-login" class="pill">…</span>
+    <span id="s-prompts" class="pill">…</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Step 1</h2>
+    <p class="lead">Log in to the platforms</p>
+    <p class="muted">Opens a browser with a tab for ChatGPT, Perplexity, and Gemini. Log into each, then click “I’m done”. Sessions are saved — you only do this once (or when a session expires).</p>
+    <div class="row">
+      <button id="btn-login" class="outlined" onclick="startLogin()">Open login browser</button>
+      <button id="btn-login-done" class="primary" onclick="loginDone()" disabled>I’m done logging in</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Step 2</h2>
+    <p class="lead">Prompts</p>
+    <p class="muted">One prompt per line. Each runs 5× on each platform. <code>#</code> lines and blanks are ignored.</p>
+    <textarea id="prompts"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" onclick="savePrompts()">Save prompts</button>
+      <span id="save-msg" class="eyebrow"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Step 3</h2>
+    <p class="lead">Run</p>
+    <div class="row">
+      <span class="eyebrow">Platforms</span>
+      <label class="chk"><input type="checkbox" class="plat" value="ChatGPT" checked> ChatGPT</label>
+      <label class="chk"><input type="checkbox" class="plat" value="Perplexity" checked> Perplexity</label>
+      <label class="chk"><input type="checkbox" class="plat" value="Gemini" checked> Gemini</label>
+    </div>
+    <div class="row">
+      <label class="chk">Runs each <input type="number" id="runs" value="5" min="1" max="20"></label>
+      <label class="chk">Limit prompts <input type="number" id="limit" placeholder="all" min="1"></label>
+      <label class="chk"><input type="checkbox" id="headful"> Show browser</label>
+    </div>
+    <p class="muted" style="margin:10px 0 0">ChatGPT always opens a visible browser window (it blocks hidden ones) — leave it on screen while it runs. “Show browser” also reveals Perplexity and Gemini.</p>
+    <div class="row" style="margin-top:16px">
+      <button id="btn-run" class="primary" onclick="startRun()">Start run</button>
+      <button id="btn-stop" class="outlined" onclick="stopRun()" disabled>Stop</button>
+      <span id="run-state" class="muted"></span>
+    </div>
+    <div class="bar"><div id="bar-fill"></div></div>
+    <div id="progress-text" class="muted">Idle.</div>
+  </div>
+
+  <div class="card">
+    <h2>Live log</h2>
+    <pre id="log">—</pre>
+  </div>
+
+  <div class="card">
+    <h2>Results</h2>
+    <p class="lead">What the AIs recommend</p>
+    <p class="muted">One entry per run, newest first. Brands are ranked by how many answers mention them; live runs update after every answer. Results are stored only on this machine.</p>
+    <div id="run-list"><p class="muted">No runs yet.</p></div>
+  </div>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+async function api(path, opts) { const r = await fetch(path, opts); return r.json(); }
+async function post(path, body) {
+  return api(path, { method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body || {}) });
+}
+
+function selectedPlatforms() {
+  return [...document.querySelectorAll(".plat:checked")].map(c => c.value);
+}
+
+async function refreshStatus() {
+  const s = await api("/api/status");
+  $("#s-provider").textContent = "analysis: " + s.provider;
+  $("#s-key").textContent = s.key_set ? "API key" : "no API key";
+  $("#s-key").className = "pill " + (s.key_set ? "ok" : "warn");
+  $("#s-login").textContent = s.profile_found ? "session saved" : "not logged in";
+  $("#s-login").className = "pill " + (s.profile_found ? "ok" : "warn");
+  $("#s-prompts").textContent = s.prompt_count + " prompts";
+  $("#s-prompts").className = "pill" + (s.bracketed.length ? " warn" : " ok");
+  if (s.bracketed.length) $("#s-prompts").title = "Still bracketed: " + s.bracketed.join(" | ");
+}
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// Which run panels are open, by file name; the newest starts open.
+const openRuns = new Set();
+let runsSeeded = false;
+let runningNow = false;
+
+function leaderboardHtml(run, plats) {
+  const byPrompt = {};
+  run.leaderboard.forEach(row => (byPrompt[row.prompt_num] ||= []).push(row));
+  const groups = Object.values(byPrompt);
+  const sections = groups.map(rows => `
+    ${groups.length > 1 ? `<p class="prompt-title">${esc(rows[0].prompt)} <span class="muted">· ${rows[0].answers} answers</span></p>` : ""}
+    <div class="table-scroll"><table class="lb">
+      <tr><th class="num">#</th><th>Brand</th><th>Share of answers</th><th class="num">Times #1</th>
+        <th class="num">Avg pos.</th>${plats.map(p => `<th class="num">${esc(p)}</th>`).join("")}<th>Items named</th></tr>
+      ${rows.map(x => `<tr>
+        <td class="num">${x.rank}</td><td class="brand">${esc(x.brand)}</td>
+        <td><div class="share"><div class="track"><div style="width:${Math.round(x.share*100)}%"></div></div>
+          <span class="num">${Math.round(x.share*100)}%</span></div></td>
+        <td class="num">${x.firsts}</td><td class="num">${x.avg_position}</td>
+        ${plats.map(p => `<td class="num">${x.platforms[p] || 0}</td>`).join("")}
+        <td class="items">${esc(x.items.slice(0, 4).join(", "))}</td></tr>`).join("")}
+    </table></div>`).join("");
+  const ds = run.domains;
+  const sources = ds.length ? `<p class="prompt-title">Most-cited sources</p>
+    <div class="table-scroll"><table class="lb">
+      <tr><th>Domain</th><th class="num">Times cited</th><th>Platforms</th></tr>
+      ${ds.map(d => `<tr><td>${esc(d.domain)}</td><td class="num">${d.count}</td><td class="items">${esc(d.platforms.join(", "))}</td></tr>`).join("")}
+    </table></div>` : "";
+  return (sections || '<p class="muted">No recommendations extracted yet.</p>') + sources;
+}
+
+function runHtml(run, plats, isLive) {
+  const title = run.legacy ? "Older brand-tracking run"
+    : !run.prompts.length ? "Empty run"
+    : esc(run.prompts[0]) + (run.prompts.length > 1 ? ` <span class="muted">+ ${run.prompts.length - 1} more</span>` : "");
+  const top = run.leaderboard.find(r => r.rank === 1);
+  const body = run.legacy ? '<p class="muted">This file uses the old Shovel brand-tracking format. Download it to view.</p>'
+    : run.error ? `<p class="muted">Couldn't read this run right now (${esc(run.error)}). It will refresh shortly.</p>`
+    : leaderboardHtml(run, plats);
+  return `<details class="run" data-file="${esc(run.file)}" ${openRuns.has(run.file) ? "open" : ""}>
+    <summary>
+      <span class="run-title">${title}</span>
+      <span class="run-meta">
+        ${isLive ? '<span class="tag live">Running</span>' : ""}
+        ${run.date ? `<span>${esc(run.date)}</span>` : ""}
+        ${run.legacy ? "" : `<span>${run.done} / ${run.total} answers</span>`}
+        ${run.prompts.length > 1 ? `<span>${run.prompts.length} prompts</span>` : ""}
+        ${top && run.prompts.length === 1 ? `<span>Top: <b>${esc(top.brand)}</b></span>` : ""}
+        <a href="/api/download?name=${encodeURIComponent(run.file)}" onclick="event.stopPropagation()">↓ .xlsx</a>
+      </span>
+    </summary>
+    <div class="run-body">${body}</div>
+  </details>`;
+}
+
+async function refreshRuns() {
+  const r = await api("/api/runs");
+  const runs = r.runs || [];
+  if (!runsSeeded && runs.length) { openRuns.add(runs[0].file); runsSeeded = true; }
+  $("#run-list").innerHTML = runs.length
+    ? runs.map((run, i) => runHtml(run, r.platforms || [], runningNow && i === 0)).join("")
+    : '<p class="muted">No runs yet.</p>';
+  document.querySelectorAll("details.run").forEach(d => d.addEventListener("toggle", () =>
+    d.open ? openRuns.add(d.dataset.file) : openRuns.delete(d.dataset.file)));
+}
+
+async function loadPrompts() { $("#prompts").value = (await api("/api/prompts")).text; }
+async function savePrompts() {
+  await post("/api/prompts", { text: $("#prompts").value });
+  $("#save-msg").textContent = "saved ✓"; setTimeout(()=>$("#save-msg").textContent="", 2000);
+  refreshStatus();
+}
+
+async function startRun() {
+  const body = { platforms: selectedPlatforms(), runs: +$("#runs").value,
+    limit: $("#limit").value ? +$("#limit").value : null, headful: $("#headful").checked };
+  const r = await post("/api/run", body);
+  if (!r.ok) { alert(r.error || "Could not start"); return; }
+  poll();
+}
+async function stopRun() { await post("/api/stop"); }
+async function startLogin() { const r = await post("/api/login"); if (r.ok) { $("#btn-login-done").disabled=false; poll(); } }
+async function loginDone() { await post("/api/login/done"); $("#btn-login-done").disabled=true; }
+
+let lastDone = -1, lastOutputs = null;
+async function poll() {
+  const p = await api("/api/progress");
+  $("#log").textContent = p.lines.length ? p.lines.join("\n") : "—";
+  const log = $("#log"); log.scrollTop = log.scrollHeight;
+  const pct = p.total ? Math.round(100 * p.done / p.total) : 0;
+  $("#bar-fill").style.width = pct + "%";
+  $("#progress-text").textContent = p.running
+    ? `${p.kind === "login" ? "Login browser open…" : `Running — ${p.done} / ${p.total} runs (${pct}%)`}`
+    : (p.done ? `Finished — ${p.done} runs completed.` : "Idle.");
+  $("#btn-run").disabled = p.running;
+  $("#btn-stop").disabled = !(p.running && p.kind === "run");
+  $("#btn-login").disabled = p.running;
+  const outputsKey = (p.outputs || []).join("|");
+  if (p.done !== lastDone || outputsKey !== lastOutputs || p.running !== runningNow) {
+    lastDone = p.done; lastOutputs = outputsKey; runningNow = p.running; refreshRuns();
+  }
+  if (p.running) setTimeout(poll, 1200);
+  else { $("#btn-login-done").disabled = true; refreshStatus(); }
+}
+
+refreshStatus(); loadPrompts(); poll();
+</script>
+</body>
+</html>
